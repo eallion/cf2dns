@@ -3,25 +3,33 @@ name: 'GitHub Actions CloudFlare2DNSPod Bot'
 on:
   push:
     branches: 
-      - master
+      - dnspod
   schedule:
-    - cron: '*/16 * * * *'
+    - cron: '0 20 * * *' #This job runs at 04:00 UTC+8 every day
+  workflow_dispatch:
+  repository_dispatch:
+    types: [update-dnspod-cf-ip]
 
 env:
   UPDATE_IPV4: true
-  UPDATE_IPV6: false
+  UPDATE_IPV6: true
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: 'dnspod'
+
       - name: 'Set up Python'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: 3.7
+
       - name: 'Install dependencies'
         run: if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
       - name: 'run cf2dns v4'
         if: env.UPDATE_IPV4 == 'true' && !cancelled()
         env:
@@ -30,6 +38,7 @@ jobs:
           SECRETID: ${{ secrets.SECRETID }}
           SECRETKEY: ${{ secrets.SECRETKEY }}
         run: python cf2dns_actions.py A
+
       - name: 'run cf2dns v6'
         if: env.UPDATE_IPV6 == 'true' && !cancelled()
         env:
